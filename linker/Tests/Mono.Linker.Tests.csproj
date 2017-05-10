@@ -70,9 +70,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="TestCases\TestSuites.cs" />
     <Compile Include="TestCases\TestDatabase.cs" />
     <Compile Include="Tests\PreserveActionComparisonTests.cs" />
