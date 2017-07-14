@@ -70,6 +70,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TestCasesRunner\PeVerifier.cs" />
     <Compile Include="TestCases\TestSuites.cs" />
     <Compile Include="TestCases\TestDatabase.cs" />
     <Compile Include="Tests\PreserveActionComparisonTests.cs" />
