@@ -23,7 +23,7 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 			_peExecutable = peExecutable;
 		}
 
-		public void Check (LinkedTestCaseResult linkResult, AssemblyDefinition original)
+		public virtual void Check (LinkedTestCaseResult linkResult, AssemblyDefinition original)
 		{
 			bool skipCheckEntirely;
 			HashSet<string> assembliesToSkip;
@@ -61,8 +61,10 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 				} else if (ctorArg.Type.Name == nameof (SkipPeVerifyForToolchian)) {
 					var skipToolchain = (SkipPeVerifyForToolchian)ctorArg.Value;
 
-					if (skipToolchain == SkipPeVerifyForToolchian.Pedump && Environment.OSVersion.Platform != PlatformID.Win32NT)
-						skipCheckEntirely = true;
+					if (skipToolchain == SkipPeVerifyForToolchian.Pedump) {
+						if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+							skipCheckEntirely = true;
+					}
 					else
 						throw new ArgumentException($"Unhandled platform and toolchain values of {Environment.OSVersion.Platform} and {skipToolchain}");
 				} else if (ctorArg.Type.Name == nameof (String)) {
