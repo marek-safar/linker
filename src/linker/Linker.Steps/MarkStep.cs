@@ -50,10 +50,13 @@ namespace Mono.Linker.Steps
 		protected List<MethodDefinition> _virtual_methods;
 		protected Queue<AttributeProviderPair> _assemblyLevelAttributes;
 		protected Queue<(AttributeProviderPair, DependencyInfo, IMemberDefinition)> _lateMarkedAttributes;
+		readonly Queue<TypeDefinition> _typesWithISerializable;
 		protected List<TypeDefinition> _typesWithInterfaces;
 		protected List<MethodBody> _unreachableBodies;
 
 		readonly List<(TypeDefinition Type, MethodBody Body, Instruction Instr)> _pending_isinst_instr;
+
+		bool markISerializableCtors;
 
 #if DEBUG
 		static readonly DependencyKind[] _entireTypeReasons = new DependencyKind[] {
@@ -177,6 +180,7 @@ namespace Mono.Linker.Steps
 			_typesWithInterfaces = new List<TypeDefinition> ();
 			_unreachableBodies = new List<MethodBody> ();
 			_pending_isinst_instr = new List<(TypeDefinition, MethodBody, Instruction)> ();
+			_typesWithISerializable = new Queue<TypeDefinition> ();
 		}
 
 		public AnnotationStore Annotations => _context.Annotations;
@@ -383,6 +387,7 @@ namespace Mono.Linker.Steps
 				ProcessVirtualMethods ();
 				ProcessMarkedTypesWithInterfaces ();
 				ProcessPendingBodies ();
+				ProcessTypesWithISerializable ();
 				DoAdditionalProcessing ();
 			}
 
@@ -453,6 +458,17 @@ namespace Mono.Linker.Steps
 					continue;
 
 				MarkInterfaceImplementations (type);
+			}
+		}
+
+		void ProcessTypesWithISerializable ()
+		{
+			if (!markISerializableCtors)
+				return;
+
+			while (_typesWithISerializable.Count != 0) {
+				TypeDefinition type = _typesWithISerializable.Dequeue ();
+				MarkMethodsIf (type.Methods, IsSpecialSerializationConstructor, new DependencyInfo (DependencyKind.SerializationMethodForType, type), type);
 			}
 		}
 
@@ -1486,6 +1502,10 @@ namespace Mono.Linker.Steps
 			if (type.IsSerializable ())
 				MarkSerializable (type);
 
+			if (!type.IsInterface && _context.TypeHierarchy.ContainsType (type, TypeHierarchy.TypeAlias.SystemISerializable)) {
+				_typesWithISerializable.Enqueue (type);
+			}
+
 			// TODO: This needs work to ensure we handle EventSource appropriately.
 			// This marks static fields of KeyWords/OpCodes/Tasks subclasses of an EventSource type.
 			if (
@@ -1964,7 +1984,7 @@ namespace Mono.Linker.Steps
 
 		static bool IsSpecialSerializationConstructor (MethodDefinition method)
 		{
-			if (!method.IsInstanceConstructor ())
+			if (!method.IsInstanceConstructor () || !method.HasParameters)
 				return false;
 
 			var parameters = method.Parameters;
@@ -2415,6 +2435,9 @@ namespace Mono.Linker.Steps
 				MarkRequirementsForInstantiatedTypes (method.DeclaringType);
 				Tracer.AddDirectDependency (method.DeclaringType, new DependencyInfo (DependencyKind.InstantiatedByCtor, method), marked: false);
 			}
+
+			if (KnownMembers.IsGetDeserializationConstructor (method))
+				markISerializableCtors = true;
 
 			if (method.IsConstructor) {
 				if (!Annotations.ProcessSatelliteAssemblies && KnownMembers.IsSatelliteAssemblyMarker (method))

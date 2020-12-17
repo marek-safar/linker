@@ -15,7 +15,6 @@ namespace Mono.Linker.Dataflow
 	{
 		readonly LinkContext _context;
 		readonly Dictionary<TypeDefinition, TypeAnnotations> _annotations = new Dictionary<TypeDefinition, TypeAnnotations> ();
-		readonly TypeHierarchyCache _hierarchyInfo = new TypeHierarchyCache ();
 
 		public FlowAnnotations (LinkContext context)
 		{
@@ -398,8 +397,7 @@ namespace Mono.Linker.Dataflow
 		bool IsTypeInterestingForDataflow (TypeReference typeReference)
 		{
 			return typeReference.MetadataType == MetadataType.String ||
-				_hierarchyInfo.IsSystemType (typeReference) ||
-				_hierarchyInfo.IsSystemReflectionIReflect (typeReference);
+				_context.TypeHierarchy.ContainsType (typeReference, TypeHierarchy.TypeAlias.SystemType | TypeHierarchy.TypeAlias.SystemReflectionIReflect);
 		}
 
 		internal void ValidateMethodAnnotationsAreSame (MethodDefinition method, MethodDefinition baseMethod)

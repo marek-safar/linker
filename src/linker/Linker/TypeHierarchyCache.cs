@@ -1,64 +1,76 @@
-﻿using System;
+﻿// Licensed to the.NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections.Generic;
 using Mono.Cecil;
 
 namespace Mono.Linker
 {
-	class TypeHierarchyCache
+	public class TypeHierarchy
 	{
 		[Flags]
-		private enum HierarchyFlags
+		public enum TypeAlias
 		{
-			IsSystemType = 0x01,
-			IsSystemReflectionIReflect = 0x02,
+			SystemType = 1,
+			SystemReflectionIReflect = 1 << 1,
+			SystemISerializable = 1 << 2,
+
+			All = SystemType | SystemISerializable | SystemReflectionIReflect
 		}
 
-		readonly Dictionary<TypeDefinition, HierarchyFlags> _cache = new Dictionary<TypeDefinition, HierarchyFlags> ();
+		readonly Dictionary<TypeDefinition, TypeAlias> _cache = new Dictionary<TypeDefinition, TypeAlias> ();
 
-		private HierarchyFlags GetFlags (TypeReference type)
+		TypeAlias GetDescription (TypeDefinition type)
 		{
-			TypeDefinition resolvedType = type.Resolve ();
-			if (resolvedType == null)
-				return 0;
+			if (_cache.TryGetValue (type, out var desc))
+				return desc;
 
-			if (_cache.TryGetValue (resolvedType, out var flags)) {
-				return flags;
+			if (type.Name == "IReflect" && type.Namespace == "System.Reflection") {
+				desc |= TypeAlias.SystemReflectionIReflect;
 			}
 
-			if (resolvedType.Name == "IReflect" && resolvedType.Namespace == "System.Reflection") {
-				flags |= HierarchyFlags.IsSystemReflectionIReflect;
+			if (type.Name == "Type" && type.Namespace == "System") {
+				desc |= TypeAlias.SystemType;
 			}
 
-			TypeDefinition baseType = resolvedType;
-			while (baseType != null) {
-				if (baseType.Name == "Type" && baseType.Namespace == "System") {
-					flags |= HierarchyFlags.IsSystemType;
-				}
+			if (type.HasInterfaces) {
+				foreach (var iface in type.Interfaces) {
+					if (iface.InterfaceType.Name == "IReflect" && iface.InterfaceType.Namespace == "System.Reflection") {
+						desc |= TypeAlias.SystemReflectionIReflect;
+						continue;
+					}
 
-				if (baseType.HasInterfaces) {
-					foreach (var iface in baseType.Interfaces) {
-						if (iface.InterfaceType.Name == "IReflect" && iface.InterfaceType.Namespace == "System.Reflection") {
-							flags |= HierarchyFlags.IsSystemReflectionIReflect;
-						}
+					if (iface.InterfaceType.Name == "ISerializable" && iface.InterfaceType.Namespace == "System.Runtime.Serialization") {
+						desc |= TypeAlias.SystemISerializable;
+						continue;
 					}
 				}
-
-				baseType = baseType.BaseType?.Resolve ();
 			}
 
-			_cache.Add (resolvedType, flags);
+			if (desc != TypeAlias.All) {
+				TypeDefinition baseType = type.BaseType?.Resolve ();
+				if (baseType != null)
+					desc |= GetDescription (baseType);
+			}
 
-			return flags;
+			_cache.Add (type, desc);
+			return desc;
 		}
 
-		public bool IsSystemType (TypeReference type)
+		public bool ContainsType (TypeDefinition type, TypeAlias types)
 		{
-			return (GetFlags (type) & HierarchyFlags.IsSystemType) != 0;
+			return (GetDescription (type) & types) != 0;
 		}
 
-		public bool IsSystemReflectionIReflect (TypeReference type)
+		public bool ContainsType (TypeReference type, TypeAlias types)
 		{
-			return (GetFlags (type) & HierarchyFlags.IsSystemReflectionIReflect) != 0;
+			TypeDefinition td = type.Resolve ();
+			if (td == null)
+				return false;
+
+			return ContainsType (td, types);
 		}
 	}
 }

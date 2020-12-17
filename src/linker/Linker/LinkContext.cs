@@ -212,6 +212,8 @@ namespace Mono.Linker
 
 		public string AssemblyListFile { get; set; }
 
+		public TypeHierarchy TypeHierarchy { get; private set; }
+
 		public LinkContext (Pipeline pipeline, ILogger logger)
 		{
 			_pipeline = pipeline;
@@ -256,6 +258,7 @@ namespace Mono.Linker
 				CodeOptimizations.IPConstantPropagation;
 
 			Optimizations = new CodeOptimizationsSettings (defaultOptimizations);
+			TypeHierarchy = new TypeHierarchy ();
 		}
 
 		public void SetFeatureValue (string feature, bool value)

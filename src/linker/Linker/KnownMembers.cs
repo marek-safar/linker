@@ -19,6 +19,7 @@ namespace Mono.Linker
 			return true;
 		}
 
+		// TODO: Convert to special linker attribute
 		public static bool IsSatelliteAssemblyMarker (MethodDefinition method)
 		{
 			if (!method.IsConstructor || method.IsStatic)
@@ -26,6 +27,13 @@ namespace Mono.Linker
 
 			var declaringType = method.DeclaringType;
 			return declaringType.Name == "ResourceManager" && declaringType.Namespace == "System.Resources";
+		}
+
+		// TODO: Convert to special linker attribute
+		public static bool IsGetDeserializationConstructor (MethodDefinition method)
+		{
+			var declaringType = method.DeclaringType;
+			return declaringType.Name == "ObjectManager" && declaringType.Namespace == "System.Runtime.Serialization";
 		}
 	}
 }
