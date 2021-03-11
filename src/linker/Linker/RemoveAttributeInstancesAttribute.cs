@@ -13,5 +13,14 @@ namespace Mono.Linker
 		AttributeTargets.Class, Inherited = false)]
 	public sealed class RemoveAttributeInstancesAttribute : Attribute
 	{
+		public RemoveAttributeInstancesAttribute ()
+		{
+		}
+
+		public RemoveAttributeInstancesAttribute (object value1)
+		{
+		}
+
+		public bool ExactArgumentCountOnly { get; set; }
 	}
 }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<linker>
+  <assembly fullname="test">
+    <type fullname="Mono.Linker.Tests.Cases.LinkAttributes.LinkerAttributeRemovalConditional">
+      <attribute internal="RemoveAttributeInstances">
+        <argument>remove</argument>
+      </attribute>
+    </type>
+  </assembly>
+</linker>

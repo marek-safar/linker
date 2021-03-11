@@ -41,20 +41,32 @@ namespace Mono.Linker.Steps
 				if (!ShouldProcessElement (iterator.Current))
 					continue;
 
+				TypeDefinition attributeType;
 				string internalAttribute = GetAttribute (iterator.Current, "internal");
 				if (!string.IsNullOrEmpty (internalAttribute)) {
-					ProcessInternalAttribute (provider, internalAttribute);
-					continue;
-				}
+					var t = typeof (RemoveAttributeInstancesAttribute);
+					var a = AssemblyDefinition.ReadAssembly (t.Assembly.Location);
+					var tr = a.MainModule.ImportReference (t);
+					attributeType = tr.Resolve ();
 
-				string attributeFullName = GetFullName (iterator.Current);
-				if (string.IsNullOrEmpty (attributeFullName)) {
-					_context.LogWarning ($"'attribute' element does not contain attribute 'fullname' or it's empty", 2029, _xmlDocumentLocation);
-					continue;
-				}
+					// TODO: Add td.IsAttributeType check 
+					if (provider is not TypeDefinition td) {
+						_context.LogWarning ($"Internal attribute '{t.Name}' can only be used on attribute types", 2048, _xmlDocumentLocation);
+						continue;
+					}
 
-				if (!GetAttributeType (iterator, attributeFullName, out TypeDefinition attributeType))
-					continue;
+					//ProcessInternalAttribute (provider, internalAttribute);
+					//continue;
+				} else {
+					string attributeFullName = GetFullName (iterator.Current);
+					if (string.IsNullOrEmpty (attributeFullName)) {
+						_context.LogWarning ($"'attribute' element does not contain attribute 'fullname' or it's empty", 2029, _xmlDocumentLocation);
+						continue;
+					}
+
+					if (!GetAttributeType (iterator, attributeFullName, out attributeType))
+						continue;
+				}
 
 				CustomAttribute customAttribute = CreateCustomAttribute (iterator, attributeType);
 				if (customAttribute != null)
@@ -84,9 +96,8 @@ namespace Mono.Linker.Steps
 					customAttribute.ConstructorArguments.Add (argument);
 
 			var properties = ProcessAttributeProperties (iterator.Current.SelectChildren ("property", string.Empty), attributeType);
-			if (properties != null)
-				foreach (var property in properties)
-					customAttribute.Properties.Add (property);
+			foreach (var property in properties)
+				customAttribute.Properties.Add (property);
 
 			return customAttribute;
 		}
@@ -142,7 +153,7 @@ namespace Mono.Linker.Steps
 
 			return attributeArguments;
 		}
-
+		/*
 		void ProcessInternalAttribute (ICustomAttributeProvider provider, string internalAttribute)
 		{
 			if (internalAttribute != "RemoveAttributeInstances") {
@@ -150,17 +161,20 @@ namespace Mono.Linker.Steps
 				return;
 			}
 
-			if (provider.MetadataToken.TokenType != TokenType.TypeDef) {
-				_context.LogWarning ($"Internal attribute 'RemoveAttributeInstances' can only be used on a type, but is being used on '{provider}'", 2048, _xmlDocumentLocation);
+			// TODO: Add td.IsAttributeType check 
+			if (provider is not TypeDefinition td) {
+				_context.LogWarning ($"Internal attribute 'RemoveAttributeInstances' can only be used on attribute types", 2048, _xmlDocumentLocation);
 				return;
 			}
 
 			if (!_context.Annotations.IsMarked (provider)) {
-				IEnumerable<Attribute> removeAttributeInstance = new List<Attribute> { new RemoveAttributeInstancesAttribute () };
+				var rara = new RemoveAttributeInstancesAttribute ();
+
+				var removeAttributeInstance = new List<Attribute> { rara };
 				_attributeInfo.AddInternalAttributes (provider, removeAttributeInstance);
 			}
 		}
-
+		*/
 		bool GetAttributeType (XPathNodeIterator iterator, string attributeFullName, out TypeDefinition attributeType)
 		{
 			string assemblyName = GetAttribute (iterator.Current, "assembly");

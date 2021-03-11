@@ -81,7 +81,7 @@ namespace Mono.Linker
 
 			return embeddedXml.CustomAttributes.ContainsKey (provider);
 		}
-
+/*
 		public IEnumerable<Attribute> GetInternalAttributes (ICustomAttributeProvider provider)
 		{
 			if (PrimaryAttributeInfo.InternalAttributes.TryGetValue (provider, out var annotations)) {
@@ -108,8 +108,8 @@ namespace Mono.Linker
 
 			return embeddedXml.InternalAttributes.ContainsKey (provider);
 		}
-
+*/
 		public bool HasAttributes (ICustomAttributeProvider provider) =>
-			HasCustomAttributes (provider) || HasInternalAttributes (provider);
+			HasCustomAttributes (provider); // || HasInternalAttributes (provider);
 	}
 }

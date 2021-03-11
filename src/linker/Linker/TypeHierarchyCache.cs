@@ -11,6 +11,7 @@ namespace Mono.Linker
 		{
 			IsSystemType = 0x01,
 			IsSystemReflectionIReflect = 0x02,
+			IsSystemAttribute = 1 << 3,
 		}
 
 		readonly Dictionary<TypeDefinition, HierarchyFlags> _cache = new Dictionary<TypeDefinition, HierarchyFlags> ();

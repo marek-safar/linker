@@ -12,12 +12,12 @@ namespace Mono.Linker
 	public class AttributeInfo
 	{
 		public Dictionary<ICustomAttributeProvider, IEnumerable<CustomAttribute>> CustomAttributes { get; }
-		public Dictionary<ICustomAttributeProvider, IEnumerable<Attribute>> InternalAttributes { get; }
+//		public Dictionary<ICustomAttributeProvider, IEnumerable<Attribute>> InternalAttributes { get; }
 
 		public AttributeInfo ()
 		{
 			CustomAttributes = new Dictionary<ICustomAttributeProvider, IEnumerable<CustomAttribute>> ();
-			InternalAttributes = new Dictionary<ICustomAttributeProvider, IEnumerable<Attribute>> ();
+//			InternalAttributes = new Dictionary<ICustomAttributeProvider, IEnumerable<Attribute>> ();
 		}
 
 		public void AddCustomAttributes (ICustomAttributeProvider provider, IEnumerable<CustomAttribute> customAttributes)
@@ -28,7 +28,7 @@ namespace Mono.Linker
 				CustomAttributes[provider] = existing.Concat (customAttributes);
 			}
 		}
-
+/*
 		public void AddInternalAttributes (ICustomAttributeProvider provider, IEnumerable<Attribute> attributes)
 		{
 			if (!InternalAttributes.TryGetValue (provider, out var existing)) {
@@ -37,5 +37,6 @@ namespace Mono.Linker
 				InternalAttributes[provider] = existing.Concat (attributes);
 			}
 		}
+*/
 	}
 }
