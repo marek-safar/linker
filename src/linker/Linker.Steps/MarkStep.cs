@@ -502,6 +502,32 @@ namespace Mono.Linker.Steps
 				_context.LogMessage ($"Removing typecheck of '{type.FullName}' inside {item.Body.Method.GetDisplayName ()} method");
 			}
 
+			for (int i = 0; i < _field_assignment_instr.Count; ++i) {
+				var item = _field_assignment_instr[i];
+				var field = (FieldReference) item.Item1.Operand;
+				var definition = _context.Resolve (field);
+
+				if (definition == null || Annotations.IsMarked (definition))
+					continue;
+
+				Instruction instr = item.Item1;
+				ILProcessor ilProcessor = item.Item2.Body.GetILProcessor ();
+				Instruction new_instr = Instruction.Create (OpCodes.Pop);
+				ilProcessor.Replace (instr, new_instr);
+
+// Is the type
+// primitive type + decimal (what about nullable?)
+// null value
+// enum value
+// array of primitive types above
+
+// target of any type where null is asssigned
+// maybe also System.Type target type
+
+
+Console.WriteLine ($"Assignment to {field}");
+			}
+
 			static void UpdateBranchTarget (MethodBody body, Instruction oldTarget, Instruction newTarget)
 			{
 				foreach (var instr in body.Instructions) {
@@ -3181,23 +3207,32 @@ namespace Mono.Linker.Steps
 				MarkInterfaceImplementation (implementation, type);
 		}
 
+		readonly List<(Instruction, MethodDefinition)> _field_assignment_instr = new ();
+
 		protected virtual void MarkInstruction (Instruction instruction, MethodDefinition method, ref bool requiresReflectionMethodBodyScanner)
 		{
 			switch (instruction.OpCode.OperandType) {
 			case OperandType.InlineField:
+				var field = (FieldReference) instruction.Operand;
 				switch (instruction.OpCode.Code) {
 				case Code.Stfld: // Field stores (Storing value to annotated field must be checked)
 				case Code.Stsfld:
+					requiresReflectionMethodBodyScanner |=
+						ReflectionMethodBodyScanner.RequiresReflectionMethodBodyScannerForAccess (_context, field);
+
+					// TODO: optimize IsMarked ?
+					_field_assignment_instr.Add ((instruction, method));
+					return;
 				case Code.Ldflda: // Field address loads (as those can be used to store values to annotated field and thus must be checked)
 				case Code.Ldsflda:
 					requiresReflectionMethodBodyScanner |=
-						ReflectionMethodBodyScanner.RequiresReflectionMethodBodyScannerForAccess (_context, (FieldReference) instruction.Operand);
+						ReflectionMethodBodyScanner.RequiresReflectionMethodBodyScannerForAccess (_context, field);
 					break;
 
 				default: // Other field operations are not interesting as they don't need to be checked
 					break;
 				}
-				MarkField ((FieldReference) instruction.Operand, new DependencyInfo (DependencyKind.FieldAccess, method));
+				MarkField (field, new DependencyInfo (DependencyKind.FieldAccess, method));
 				break;
 
 			case OperandType.InlineMethod: {
